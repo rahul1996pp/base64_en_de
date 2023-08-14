@@ -11,6 +11,7 @@
 
 
 ## How to run script:
+ `pip install cryptography`
  `python encode_decode.py`
  
 ## Run script in windows
