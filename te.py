@@ -1,32 +1,32 @@
-import qrcode
-import os
+from PIL import Image
+import math
 
-def split_base64_content(file_path, chunk_size):
-    with open(file_path, 'r') as file:
-        content = file.read()
-    return [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
-
-def generate_qr_codes(file_path, output_directory, chunk_size=2800):
-    chunks = split_base64_content(file_path, chunk_size)
+def file_to_bitmap(file_path, output_image_path):
+    # 1. Read the file as a sequence of bytes
+    with open(file_path, 'rb') as file:
+        data = file.read()
     
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
+    # 2. Convert each byte to a grayscale pixel value
+    pixel_data = [byte for byte in data]
     
-    for index, chunk in enumerate(chunks):
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(chunk)
-        qr.make(fit=True)
-        
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        img_path = os.path.join(output_directory, f"qr_code_{index}.png")
-        img.save(img_path)
-        print(f"Saved QR code {index + 1} to {img_path}")
+    # 3. Calculate the best rectangular dimensions for the image
+    total_pixels = len(pixel_data)
+    width = int(math.sqrt(total_pixels))
+    height = total_pixels // width
+    remaining_pixels = total_pixels - (width * height)
+    
+    # Handle any remaining pixels by adjusting width and height
+    while remaining_pixels > 0:
+        width += 1
+        height = total_pixels // width
+        remaining_pixels = total_pixels - (width * height)
+    
+    # 4. Create an image with these pixel values
+    image = Image.new('L', (width, height))
+    image.putdata(pixel_data)
+    
+    # 5. Save the image
+    image.save(output_image_path)
 
 # Example usage:
-# generate_qr_codes('path_to_your_base64_file.txt', 'output_directory_for_qr_codes')
+# file_to_bitmap('path_to_your_file', 'output_image.png')
