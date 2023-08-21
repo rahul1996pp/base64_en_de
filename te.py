@@ -1,24 +1,32 @@
 import qrcode
+import os
 
-def base64_to_qrcode(file_path, output_image_path):
-    # Read the base64 encoded file
+def split_base64_content(file_path, chunk_size):
     with open(file_path, 'r') as file:
-        encoded_string = file.read()
+        content = file.read()
+    return [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
+
+def generate_qr_codes(file_path, output_directory, chunk_size=2800):
+    chunks = split_base64_content(file_path, chunk_size)
     
-    # Generate QR code
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(encoded_string)
-    qr.make(fit=True)
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
     
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Save QR code as image
-    img.save(output_image_path)
+    for index, chunk in enumerate(chunks):
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(chunk)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        img_path = os.path.join(output_directory, f"qr_code_{index}.png")
+        img.save(img_path)
+        print(f"Saved QR code {index + 1} to {img_path}")
 
 # Example usage:
-# base64_to_qrcode('path_to_your_base64_file.txt', 'output_qrcode_image.png')
+# generate_qr_codes('path_to_your_base64_file.txt', 'output_directory_for_qr_codes')
