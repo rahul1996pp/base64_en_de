@@ -4,25 +4,17 @@ import base64
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
-# File decompression function
-def decompress_with_lzma(input_file, output_file):
-    with lzma.open(input_file, 'rb') as f_in, open(output_file, 'wb') as f_out:
-        f_out.writelines(f_in)
-
-def decode_and_decrypt_aes_ctr(input_file, output_file, key, nonce):
+def decode_decrypt_decompress(encoded_data, key, nonce):
+    """Decode, decrypt, and decompress the given data."""
+    # Base64 decoding
+    encrypted_data = base64.b64decode(encoded_data.encode('utf-8'))
+    # Decryption
     cipher = Cipher(algorithms.AES(key), modes.CTR(nonce), backend=default_backend())
     decryptor = cipher.decryptor()
-    with open(input_file, 'r') as f:
-        encoded_data = f.read()
-        encrypted_data = base64.b64decode(encoded_data.encode('utf-8'))
     decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
-    with open(output_file, 'wb') as f:
-        f.write(decrypted_data)
-
-def decode_file(encoded_data_path, output_path, key, nonce):
-    temp_decoded_path = 'temp_decoded.lzma'
-    decode_and_decrypt_aes_ctr(encoded_data_path, temp_decoded_path, key, nonce)
-    decompress_with_lzma(temp_decoded_path, output_path)
+    # Decompression
+    decompressed_data = lzma.decompress(decrypted_data)
+    return decompressed_data
 
 if __name__ == "__main__":
     # encoded_data_path = input("[+] Enter the path to the encoded data file: ").replace('"','')
@@ -35,5 +27,9 @@ if __name__ == "__main__":
     key_hex , nonce_hex = encrypt_key.split(":")
     key = bytes.fromhex(key_hex)
     nonce = bytes.fromhex(nonce_hex)
-    decode_file(encoded_data_path, output_path, key, nonce)
+    with open(encoded_data_path, 'r') as f:
+        encoded_data = f.read()
+    decoded_data = decode_decrypt_decompress(encoded_data, key, nonce)
+    with open(output_path, 'wb') as f:
+        f.write(decoded_data)
     print(f"[+] Decoded file saved as {output_path}")
